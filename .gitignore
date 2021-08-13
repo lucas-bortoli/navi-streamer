@@ -1,0 +1,3 @@
+usrdata/*
+node_modules
+.env
