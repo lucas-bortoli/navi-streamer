@@ -1,3 +1,5 @@
 usrdata/*
 node_modules
 .env
+db.json
+downloads/*
