@@ -1,12 +1,13 @@
 const { promisify } = require('util')
 const path = require('path')
+const WebTorrent = require('webtorrent')
 
 function fileUrl(filePath, options = {}) {
 	if (typeof filePath !== 'string') {
 		throw new TypeError(`Expected a string, got ${typeof filePath}`);
 	}
 
-	const {resolve = true} = options;
+	const { resolve = true } = options;
 
 	let pathName = filePath;
 	if (resolve) {
@@ -28,7 +29,7 @@ function fileUrl(filePath, options = {}) {
 module.exports.fileUrl = fileUrl
 module.exports.shellExecute = promisify(require('child_process').exec)
 module.exports.sleep = ms => new Promise(r => setTimeout(() => r(), ms))
-module.exports.bytes_to_human_readable = function(bytes) {
+module.exports.bytes_to_human_readable = function (bytes) {
 	var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
 	if (bytes == 0) return '0 B';
 	var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
@@ -36,8 +37,23 @@ module.exports.bytes_to_human_readable = function(bytes) {
 }
 
 module.exports.torrents = {}
-module.exports.torrents.filter_invalid_extensions = (torrent_list) =>
-	torrent_list.filter(t => !t.name.endsWith('.srt') && !t.name.endsWith('.txt'))
+
+/**
+ * @param {WebTorrent.TorrentFile[]} files
+ * @returns {WebTorrent.TorrentFile[]}
+ */
+module.exports.torrents.filter_invalid_extensions = (files) =>
+	files.filter(t => !t.name.endsWith('.srt') && !t.name.endsWith('.txt'))
+
+
+/**
+ * @param {WebTorrent.TorrentFile[]} files
+ * @returns {WebTorrent.TorrentFile[]}
+ */
+module.exports.torrents.sort_file_list = (files) =>
+	files.sort((a, b) => a.name.localeCompare(b.name))
+
+
 module.exports.torrents.get_torrent_as_list = (torrent) =>
 	module.exports.torrents.filter_invalid_extensions(torrent.files)
 		.map((file, index) => `${index + 1}. ${file.name}\n    ${Math.ceil(file.progress * 100)}% (${module.exports.bytes_to_human_readable(file.downloaded)} de ${module.exports.bytes_to_human_readable(file.length)} baixados)`).join('\n')

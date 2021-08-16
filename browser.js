@@ -8,8 +8,9 @@ class Browser {
         this.browser = await puppeteer.launch({
             userDataDir: './usrdata',
             executablePath: '/usr/bin/google-chrome',
+            // disable sounds by pointing Chromium's audio engine to nowhere
             env: Object.assign({}, process.env, { 'PULSE_SERVER': 'none' }),
-            args: [ ],
+            args: [ '--alsa-output-device=none', '--alsa-input-device=none' ],
             headless: false
         })
 
@@ -103,6 +104,11 @@ class Browser {
      * Pausa o vídeo
      */
     player_controls_pause() { return this.player_page_eval('Pause()') }
+
+    /**
+     * Pausa ou toca o vídeo
+     */
+    player_controls_pause_or_play() { return this.player_page_eval('PauseOrPlay()') }
 
     /**
      * Pula no vídeo
