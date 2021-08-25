@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background: black;
+                overflow: hidden;
+                font-family: sans-serif;
+            }
+
+            video {
+                width: 100vw;
+                height: 100vh;    
+            }
+
+            input[type="file"] {
+                display: none;
+            }
+
+            .ui {
+                display: flex;
+                flex-direction: column;
+
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                padding: 2em 4em;
+                color: white;
+                background: #212121;
+            }
+
+            .ui h1 {
+                font-size: 4em;
+            }
+
+            .ui p {
+                font-size: 2em;
+            }
+
+            p {
+                margin: 1em 0;
+            }
+
+            .command {
+                font-family: monospace;
+                color: #039be5;
+            }
+
+            #pause_screen.hidden {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <input id="file_chooser" type="file">
+        <audio id="sfx_play" src="play.wav"></audio>
+        <audio id="sfx_pause" src="pause.wav"></audio>
+        <video autostart autoplay id="player"></video>
+        <div id="pause_screen" class="ui">
+            <h1>Stream pausada</h1>
+            <p>
+                Para despausar, vá para um canal do Discord onde a Navi está e digite <span class="command">.play</span>
+            </p>
+            <p id="status">
+                00:00 de 00:00
+            </p>
+        </div>
+        
+        <script src="player.js"></script>
+    </body>
+</html>

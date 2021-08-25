@@ -1,12 +1,15 @@
-const puppeteer = require('puppeteer-core')
-const child_process = require('child_process')
-const { sleep, shellExecute, fileUrl } = require('./utils')
-const PulseAudio = require('./pulseaudio')
+import Puppeteer from "puppeteer-core"
+
+import { sleep, shellExecute, fileUrl } from './utils'
 
 class Browser {
-    async launch() {
-        this.browser = await puppeteer.launch({
-            userDataDir: './usrdata',
+    private browser: Puppeteer.Browser
+    private movie_page: Puppeteer.Page
+    private discord_page: Puppeteer.Page
+    
+    public async launch() {
+        this.browser = await Puppeteer.launch({
+            userDataDir: '../usrdata',
             executablePath: '/usr/bin/google-chrome',
             // disable sounds by pointing Chromium's audio engine to nowhere
             env: Object.assign({}, process.env, { 'PULSE_SERVER': 'none' }),
@@ -19,15 +22,13 @@ class Browser {
 
         this.movie_page.setViewport({ width: 848, height: 480 })
         this.movie_page.goto(fileUrl('ui/player_page.html'))
-        
-        // setInterval(() => PulseAudio.muteProcessTree(this.browser.process().pid), 10000)
     }
 
     /**
      * Navega até /channels/:guild_id/00000
      * @param {string} guild_id 
      */
-    async focusGuild(guild_id) {
+    public async focusGuild(guild_id) {
         await this.discord_page.bringToFront()
         return await this.discord_page.goto(`https://discord.com/channels/${guild_id}/32423`, { waitUntil: 'networkidle0' })
     }
@@ -36,7 +37,7 @@ class Browser {
      * Entra em um canal de voz. A GUILD DEVE ESTAR "FOCADA" ANTES (ver focusGuild)
      * @param {string} channel_name 
      */
-    async joinVoiceChannel(channel_name) {
+    public async joinVoiceChannel(channel_name) {
         // desconectar do canal anterior (se houver)
         await this.discord_page.bringToFront()
 
@@ -57,15 +58,17 @@ class Browser {
         await shellExecute('xdotool key --delay 100 shift+Tab shift+Tab Right Right Tab Down Down Tab space Tab Tab space')
     }
 
-    async exitVoiceChannel() {
+    public async exitVoiceChannel() {
         await this.discord_page.mouse.click(100, 100) // click somewhere to gain focus
-        await this.discord_page.evaluate(() => {
-            let disconnect_btn = document.querySelector('button[aria-label="Disconnect"]')
-            if (disconnect_btn) disconnect_btn.click()
-        })
+        try {
+            await this.discord_page.click('button[aria-label="Disconnect"]')
+        } catch(_) {
+            // don't do anything, because we know that the button may actually not exist
+            // and its existence is optional
+        }
     }
 
-    async stopStream() {
+    public async stopStream() {
         try { this.exitVoiceChannel() } catch(_) {}
 
         this.movie_page.reload()
@@ -73,23 +76,20 @@ class Browser {
 
     /**
      * Seleciona o arquivo a ser exibido
-     * @param {string} file 
      */
-    async player_set_video_file(file) {
+    public async player_set_video_file(file: string) {
         console.log('Abrindo arquivo', file)
 
         const fileChooserHandle = await this.movie_page.$('#file_chooser')
         await fileChooserHandle.uploadFile(file)
         await this.movie_page.setViewport({ width: 1280, height: 720 })
         await this.player_controls_play()
-        // PulseAudio.setSinkInputMute(PulseAudio.findSinkIdFromPID(this.browser.process().pid), true)
     }
 
     /**
      * Executa um script na página de player
-     * @param {string|function} script 
      */
-    player_page_eval(script) {
+    public player_page_eval(script: string) {
         return this.movie_page.evaluate(script)
     }
 
@@ -115,16 +115,19 @@ class Browser {
      */
     player_controls_seek(relative) { return this.player_page_eval(`Seek(${relative})`) }
 
-    /**
-     * 
-     * @returns {Browser}
-     */
-    static getInstance() {
-        if (!Browser.__instance)
-            Browser.__instance = new Browser()
+    public close(): void {
+        try {
+            this.browser.close()
+        } catch(ex) {
+            // todo...
+        }
+    }
 
-        return Browser.__instance
+    private static inst: Browser
+    public static getInstance(): Browser {
+        if (!this.inst) this.inst = new Browser()
+        return this.inst
     }
 }
 
-module.exports = Browser
+export default Browser

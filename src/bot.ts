@@ -1,10 +1,13 @@
-const Discord = require('discord.js')
-const Browser = require('./browser')
-const TorrentClient = require('./torrent')
-const Utils = require('./utils')
-const Settings = require('./settings.json')
+import * as Discord from 'discord.js'
+
+import Browser from './browser'
+import TorrentClient from './torrent'
+import * as Utils from './utils'
+import Settings from './settings'
 
 class Bot {
+    public client: Discord.Client
+
     constructor() {
         this.client = new Discord.Client({ intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES", "GUILD_VOICE_STATES"] })
 
@@ -15,7 +18,7 @@ class Bot {
 
     async login() {
         await Browser.getInstance().launch()
-        await this.client.login(Settings.discord_bot_token)
+        await this.client.login(Settings().discord_bot_token)
         this.update_presence()
     }
 
@@ -101,7 +104,7 @@ class Bot {
             try {
                 await bw.focusGuild(guildId)
                 await bw.joinVoiceChannel(channelName)
-                await bw.player_set_video_file('downloads/' + files[video_id - 1].path)
+                await bw.player_set_video_file('../downloads/' + files[video_id - 1].path)
 
                 this.send_message(msg.channel, `*Stream iniciada*`)
             } catch (ex) {
@@ -156,15 +159,11 @@ class Bot {
         }
     }
 
-    /**
-     * @returns {Bot}
-     */
-    static getInstance() {
-        if (!Bot.__instance)
-            Bot.__instance = new Bot()
-
-        return Bot.__instance
+    private static inst: Bot
+    public static getInstance(): Bot {
+        if (!this.inst) this.inst = new Bot()
+        return this.inst
     }
 }
 
-module.exports = Bot
+export default Bot

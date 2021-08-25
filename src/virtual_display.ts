@@ -1,14 +1,18 @@
-const { spawn } = require('child_process')
-const Xvfb = require('xvfb')
-const Settings = require('./settings.json')
+import { spawn, ChildProcessWithoutNullStreams } from "child_process"
+import Xvfb from "xvfb"
+import Settings from "./settings"
 
 class Display {
+    private xvfb: Xvfb
+    private window_manager: ChildProcessWithoutNullStreams
+    private _old_display_variable: string
+
     constructor() {
         this.xvfb = new Xvfb({
-            displayNum: Settings.xvfb_preferred_display_number || 800,
+            displayNum: Settings().xvfb_preferred_display_number || 800,
             reuse: true
         })
-
+        
         this.window_manager = null
     }
 
@@ -29,15 +33,11 @@ class Display {
         return this.xvfb.display()
     }
 
-    /**
-     * @returns {Display}
-     */
-    static getInstance() {
-        if (!Display.__instance)
-            Display.__instance = new Display()
-
-        return Display.__instance
+    private static inst: Display
+    public static getInstance(): Display {
+        if (!this.inst) this.inst = new Display()
+        return this.inst
     }
 }
 
-module.exports = Display
+export default Display

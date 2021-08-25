@@ -3,4 +3,5 @@ node_modules
 .env
 db.json
 downloads/*
-settings.json
+settings.js
+build/*

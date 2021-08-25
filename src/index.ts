@@ -1,19 +1,20 @@
-const Display = require('./virtual_display')
-const Bot = require('./bot.js')
-const Browser = require('./browser')
-const TorrentClient = require('./torrent')
+import Display from './virtual_display'
+import Bot from './bot'
+import Browser from './browser'
+import TorrentClient from './torrent'
 
 Display.getInstance().start()
 TorrentClient.getInstance()
 Bot.getInstance().login()
+
 
 process.stdin.resume();//so the program will not close instantly
 
 function exitHandler(options, exitCode) {
     if (options.cleanup) {
         Bot.getInstance().client.destroy()
-        TorrentClient.getInstance().wtorrent.destroy()
-        Browser.getInstance().browser.close()
+        TorrentClient.getInstance().destroy()
+        Browser.getInstance().close()
         Display.getInstance().stop()
     }
     if (exitCode || exitCode === 0) {

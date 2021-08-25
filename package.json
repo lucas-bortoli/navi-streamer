@@ -1,12 +1,16 @@
 {
   "dependencies": {
+    "@types/webtorrent": "^0.109.1",
     "discord.js": "^13.1.0",
     "puppeteer-core": "^10.2.0",
     "simple-json-db": "^1.2.3",
+    "typescript": "^4.3.5",
     "webtorrent": "^1.3.9",
     "xvfb": "^0.4.0"
   },
   "scripts": {
-    "setup": "node configure_bot.js"
+    "setup": "node configure_bot.js",
+    "start": "cd build; node index.js",
+    "build": "rm -r build/*; tsc --build --force && \\cp -r src/ui/ build/"
   }
 }
