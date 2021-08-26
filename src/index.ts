@@ -7,7 +7,6 @@ Display.getInstance().start()
 TorrentClient.getInstance()
 Bot.getInstance().login()
 
-
 process.stdin.resume();//so the program will not close instantly
 
 function exitHandler(options, exitCode) {
