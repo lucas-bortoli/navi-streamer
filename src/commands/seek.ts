@@ -12,9 +12,9 @@ export default class implements ICommand {
         const fullArgs = args.join(' ')
         let total = 0
 
-        for (let i = 0; i < args.length; i++) {
-            if (fullArgs.charAt(i) === '+') total += 10
-            if (fullArgs.charAt(i) === '-') total -= 10
+        for (let i = 0; i < fullArgs.length; i++) {
+            if (fullArgs[i] === '+') total += 10
+            if (fullArgs[i] === '-') total -= 10
         }
 
         await Browser.getInstance().player_controls_seek(total)

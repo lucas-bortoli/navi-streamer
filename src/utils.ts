@@ -1,6 +1,9 @@
 import { promisify } from 'util'
 import { resolve } from 'path'
 
+import fetch from 'node-fetch'
+import * as fs from 'fs'
+
 import WebTorrent from 'webtorrent';
 
 export const fileUrl = (filePath: string, options = {}): string => {
@@ -52,4 +55,23 @@ export const torrents = {
 			.map((file, index) => `${index + 1}. ${file.name}\n    ${Math.ceil(file.progress * 100)}% (${module.exports.bytes_to_human_readable(file.downloaded)} de ${module.exports.bytes_to_human_readable(file.length)} baixados)`).join('\n')
 	
 
+}
+
+
+/**
+ * Baixa um arquivo
+ * @param url URL do objeto
+ * @param output Local a ser salvo
+ * @returns Local do arquivo baixado
+ */
+export const downloadFile = (url: string, output: string): Promise<string> => {
+	return new Promise((resolve, reject) => {
+		const outputFileStream = fs.createWriteStream(output)
+
+		fetch(url)
+			.then(response => response.body.pipe(outputFileStream))
+			.catch(reject)
+
+		outputFileStream.once('finish', () => resolve(output))
+	})
 }

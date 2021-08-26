@@ -86,6 +86,13 @@ class Browser {
         await this.player_controls_play()
     }
 
+    public async player_set_subtitles(subfile: string) {
+        console.log('Abrindo legenda', subfile)
+
+        const fileChooserHandle = await this.movie_page.$('#subtitle_file_chooser')
+        await fileChooserHandle.uploadFile(subfile)
+    }
+
     /**
      * Executa um script na página de player
      */

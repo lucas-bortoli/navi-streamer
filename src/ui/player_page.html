@@ -56,13 +56,29 @@
             #pause_screen.hidden {
                 display: none;
             }
+
+            #subtitle {
+                color: white;
+                background: rgba(0, 0, 0, 0.8);
+                font-family: sans-serif;
+                font-size: 2em;
+                padding: 0.3em 0.6em;
+
+                position: absolute;
+                transform: translate(-50%, 0);
+                bottom: 0;
+                left: 50%;
+            }
         </style>
     </head>
     <body>
         <input id="file_chooser" type="file">
+        <input id="subtitle_file_chooser" type="file">
+
         <audio id="sfx_play" src="play.wav"></audio>
         <audio id="sfx_pause" src="pause.wav"></audio>
         <video autostart autoplay id="player"></video>
+        <p id="subtitle"></p>
         <div id="pause_screen" class="ui">
             <h1>Stream pausada</h1>
             <p>
@@ -72,7 +88,9 @@
                 00:00 de 00:00
             </p>
         </div>
-        
+    
+        <script src="parse-srt.js"></script>
+        <script src="subtitles.js"></script>
         <script src="player.js"></script>
     </body>
 </html>
