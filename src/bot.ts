@@ -1,17 +1,35 @@
-import * as Discord from 'discord.js'
+import * as fs from 'fs'
+import * as path from 'path'
+
+import Discord from 'discord.js'
 
 import Browser from './browser'
 import TorrentClient from './torrent'
-import * as Utils from './utils'
 import Settings from './settings'
+import ICommand from './types/ICommand'
 
 class Bot {
     public client: Discord.Client
+
+    public commands: Map<string, ICommand> = new Map()
 
     constructor() {
         this.client = new Discord.Client({ intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES", "GUILD_VOICE_STATES"] })
 
         this.client.on('messageCreate', (...args) => this.message_handler(...args))
+
+        // dinamically load commands
+        fs.readdirSync(path.join(__dirname, './commands/')).forEach(file => {
+            const importedClass = require(path.join(__dirname, './commands/', file)).default
+            const command: ICommand = new importedClass()
+
+            this.commands.set(command.name, command)
+
+            // register aliases too
+            for (const alias of command.aliases) {
+                this.commands.set(alias, command)
+            }
+        })
 
         setInterval(() => this.update_presence(), 30000)
     }
@@ -57,105 +75,15 @@ class Bot {
         const args = msg.content.split(' ')
         let cmd = args.shift().replace('.', '')
 
-        if (cmd === 'p') {
-            await Browser.getInstance().player_controls_pause_or_play()
-            this.send_message(msg.channel, `*Ok*`)
-        } else if (cmd === 'ajuda' || cmd === 'help' || cmd === '?') {
-            const embed = new Discord.MessageEmbed()
-            embed.addField('Comandos de streaming', [
-                '.p\n        dá play ou pause',
-                '.seek **+** ou **-**\n        avança no vídeo',
-                '.start **número de arquivo**\n        inicia a stream',
-                '.stop\n        para a stream'
-            ].join('\n'))
-            embed.addField('Comandos de torrent', [
-                '.set-torrent **<magnet uri>**\n        começa a baixar um torrent',
-                '.view-torrent\n        mostra os status do torrent'
-            ].join('\n'))
-            this.send_message(msg.channel, { embeds: [embed] })
-        } else if (cmd.startsWith('seek')) {
-            let total = 0
-            for (let i = 0; i < cmd.length; i++) {
-                if (cmd[i] === '+') total += 10
-                if (cmd[i] === '-') total -= 10
-            }
-            await Browser.getInstance().player_controls_seek(total)
-            this.send_message(msg.channel, `*Avançados **${total}** segundos*`)
-        } else if (cmd === 'start') {
-            const torrent = TorrentClient.getInstance().getTorrent()
-            const video_id = parseInt(args.shift())
+        if (this.commands.has(cmd)) {
+            const command = this.commands.get(cmd)
 
-            if (!msg.member.voice.channel)
-                return this.send_message(msg.channel, '*Você não está em um canal de voz*')
-            if (!torrent)
-                return this.send_message(msg.channel, '*Não há nenhum torrent baixado*')
+            if (command.ownerOnly && Settings().owner_id !== msg.author.id)
+                return // command is privileged
 
-            const files = Utils.torrents.sort_file_list(Utils.torrents.filter_invalid_extensions(torrent.files))
-
-            if (!video_id || !files[video_id - 1])
-                return this.send_message(msg.channel, '*Qual é o número do arquivo a ser tocado? ex. `.start 2`* | veja os arquivos com `.view-torrent`')
-
-            this.send_message(msg.channel, `*Entrando no canal*`)
-
-            const channelName = msg.member.voice.channel.name
-            const guildId = msg.guildId
-            const bw = Browser.getInstance()
-
-            try {
-                await bw.focusGuild(guildId)
-                await bw.joinVoiceChannel(channelName)
-                await bw.player_set_video_file('../downloads/' + files[video_id - 1].path)
-
-                this.send_message(msg.channel, `*Stream iniciada*`)
-            } catch (ex) {
-                console.error(ex)
-                return this.send_message(msg.channel, `*Houve um erro ao entrar no canal de voz*`)
-            }
-        } else if (cmd === 'stop') {
-            await Browser.getInstance().stopStream()
-            this.send_message(msg.channel, `*Parando stream*`)
-        } else if (cmd === 'set-torrent') {
-            const magnet_link = args.shift()
-            console.log(magnet_link)
-            if (!magnet_link)
-                return this.send_message(msg.channel, 'Um link magnet não foi dado')
-
-            try {
-                const torrent = await TorrentClient.getInstance().setTorrent(magnet_link)
-
-                const embed = new Discord.MessageEmbed()
-
-                embed
-                    .setColor(4886754)
-                    .setFooter(`${Math.ceil(torrent.progress * 100)}% | ${Utils.bytes_to_human_readable(torrent.length)} | ${Utils.bytes_to_human_readable(torrent.downloadSpeed)}/s`)
-                    .setAuthor('Torrent downloader', 'https://neuroup.com.br/wp-content/uploads/2019/06/download-icon.png')
-
-                Utils.torrents.sort_file_list(Utils.torrents.filter_invalid_extensions(torrent.files))
-                    .forEach((file, index) =>
-                        embed.addField(`${index + 1}. ${file.name}`, `${Math.ceil(file.progress * 100)}% | ${Utils.bytes_to_human_readable(file.length)}`, false))
-
-                this.send_message(msg.channel, { content: '*Torrent adicionado*', embeds: [embed] })
-            } catch (ex) {
-                this.send_message(msg.channel, '*Houve um erro ao adicionar o torrent*')
-            }
-        } else if (cmd === 'view-torrent') {
-            const torrent = TorrentClient.getInstance().getTorrent()
-
-            if (!torrent)
-                return this.send_message(msg.channel, '*Não há nenhum torrent adicionado*')
-
-            const embed = new Discord.MessageEmbed()
-
-            embed
-                .setColor(4886754)
-                .setFooter(`${Math.ceil(torrent.progress * 100)}% | ${Utils.bytes_to_human_readable(torrent.length)} | ${Utils.bytes_to_human_readable(torrent.downloadSpeed)}/s`)
-                .setAuthor('Torrent downloader', 'https://neuroup.com.br/wp-content/uploads/2019/06/download-icon.png')
-
-            Utils.torrents.sort_file_list(Utils.torrents.filter_invalid_extensions(torrent.files))
-                .forEach((file, index) =>
-                    embed.addField(`${index + 1}. ${file.name}`, `${Math.ceil(file.progress * 100)}% | ${Utils.bytes_to_human_readable(file.length)}`, false))
-
-            this.send_message(msg.channel, { embeds: [embed] })
+            command.exec(msg, args)
+        } else {
+            // unknown command, ignore
         }
     }
 
