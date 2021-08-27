@@ -3,7 +3,7 @@ import { Message, MessageEmbed } from "discord.js"
 
 export default class implements ICommand {
     public name = 'ajuda'
-    public aliases = []
+    public aliases = [ '?', 'help' ]
     public ownerOnly = false
     
     public async exec(msg: Message, args: string[]): Promise<void> {
@@ -25,9 +25,14 @@ Outros nomes: \`sub\`, \`legenda\`
 Coloca legendas na stream atual. Ao executar o comando, o bot enviará outra mensagem solicitando um arquivo do tipo \`.srt\` (arquivo de legendas). Você deverá fazer upload do arquivo no mesmo canal -- o bot baixará ele e aplicará na stream.
 
 **subtitle-offset \<N>**
-Outros nomes: \`suboffset\`
+Outros nomes: \`suboffset, o\`
 
 Se as legendas não estão sincronizadas com o áudio, é possível ajustar seu delay. Por exemplo, \`.subtitle-offset 10\` fará com que as legendas apareçam 10 segundos DEPOIS de onde apareceriam novamente. Um número negativo faz elas aparecerem ANTES.
+
+**qualidade \<R>**
+Outros nomes: \`resolução, res, q\`
+
+Muda a qualidade do vídeo. \`R\` pode ser 144p, 240p, 360p, 480p e 720p. Esse comando permite reduzir a latência, a custo da qualidade de vídeo.
 
 **view-torrent**
 Mostra os arquivos do torrent, junto com seu progresso de download (%).

@@ -6,7 +6,7 @@ import Stream from "../stream";
 
 export default class implements ICommand {
     public name = 'subtitle-offset'
-    public aliases = ['suboffset']
+    public aliases = ['suboffset', 'o']
     public ownerOnly = false
 
     public async exec(msg: Message, args: string[]): Promise<void> {

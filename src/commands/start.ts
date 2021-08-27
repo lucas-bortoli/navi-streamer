@@ -38,7 +38,7 @@ export default class implements ICommand {
             return
         }
 
-        let statusMsg = await msg.channel.send('<a:spinner:880417215231443025> Aguarde...')
+        let statusMsg = await msg.channel.send('<a:loading:880816626734333973> Aguarde...')
 
         const channelName = msg.member.voice.channel.name
         const guildId = msg.guildId
@@ -55,7 +55,7 @@ export default class implements ICommand {
             await bw.player_set_video_file('../downloads/' + files[video_id - 1].path)*/
             await stream.setVideoFile('../downloads/' + files[video_id - 1].path)
             
-            statusMsg.edit(statusMsg.content.replace('a:spinner:880417215231443025', ':blank:880424437118287972') + `\n<:streaming:880419018572439612> **Stream iniciada**`)
+            statusMsg.edit(statusMsg.content.replace('a:loading:880816626734333973', ':blank:880424437118287972') + `\n<:streaming:880419018572439612> **Stream iniciada**`)
         } catch (ex) {
             console.error(ex)
             statusMsg.edit(statusMsg.content + `\n<:error:880419556546469898> **Houve um erro ao entrar no canal de voz**`)
