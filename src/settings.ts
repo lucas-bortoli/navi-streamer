@@ -4,6 +4,7 @@ import { join } from 'path'
 interface Settings {
     discord_bot_token: string
     owner_id: string,
+    streaming_account_user_id: string,
     xvfb_preferred_display_number: number
 }
 

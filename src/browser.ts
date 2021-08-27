@@ -1,15 +1,22 @@
 import Puppeteer from "puppeteer-core"
 
-import { sleep, shellExecute, fileUrl } from './utils'
+import { sleep, shellExecute, fileUrl, copyDir } from './utils'
+
+import * as fsP from "fs/promises"
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
 
 class Browser {
-    private browser: Puppeteer.Browser
-    private movie_page: Puppeteer.Page
-    private discord_page: Puppeteer.Page
+    public browser: Puppeteer.Browser
+    public movie_page: Puppeteer.Page
+    public discord_page: Puppeteer.Page
     
     public async launch() {
+        const userDataTempDirectory = await this.createTemporaryUserDataDirectory(path.join(__dirname, '../usrdata'))
+
         this.browser = await Puppeteer.launch({
-            userDataDir: '../usrdata',
+            userDataDir: userDataTempDirectory,
             executablePath: '/usr/bin/google-chrome',
             // disable sounds by pointing Chromium's audio engine to nowhere
             env: Object.assign({}, process.env, { 'PULSE_SERVER': 'none' }),
@@ -22,6 +29,29 @@ class Browser {
 
         this.movie_page.setViewport({ width: 848, height: 480 })
         this.movie_page.goto(fileUrl('ui/player_page.html'))
+
+        const context = this.browser.defaultBrowserContext()
+        context.overridePermissions('https://discord.com', [ 'microphone' ])
+    }
+
+    /**
+     * Previne que as páginas alterem a configuração original do navegador -- para isso, faz o navegador usar um diretório
+     * temporário contendo uma CÓPIA do userdata
+     * @returns O caminho ao diretório de userdata.
+     */
+    private async createTemporaryUserDataDirectory(originalDirectory: string): Promise<string> {
+        const targetDir = path.join(os.tmpdir(), 'streamer_usrdata')
+
+        // check if directory already exists
+        if (fs.existsSync(targetDir)) {
+            // delete it
+            await fsP.rm(targetDir, { recursive: true, force: true })
+        }
+
+        // create usrdata dir
+        await copyDir(originalDirectory, targetDir)
+
+        return targetDir
     }
 
     /**
@@ -42,24 +72,38 @@ class Browser {
         await this.discord_page.bringToFront()
 
         // agora que a janela está em foco, pegar o ID dela com xdotool
-        const window_id = await shellExecute(`xdotool getactivewindow`)
-
+        // const window_id = await shellExecute(`xdotool getactivewindow`)
         await this.discord_page.setViewport({ width: 1280, height: 4096 })
-        await this.discord_page.mouse.click(100, 100) // click somewhere to gain focus
-        await this.exitVoiceChannel()
-        await sleep(1000)
-        await this.discord_page.click(`[aria-label^="${channel_name} (voice channel)"]`)
-        await sleep(1000)
         await this.discord_page.bringToFront()
-        await this.discord_page.click('button[aria-label="Share Your Screen"]')
-        await sleep(1000)
+        await this.discord_page.mouse.click(640, 2048) // click somewhere to gain focus
+        await this.discord_page.keyboard.press('Escape')
+        await sleep(100)
+        await this.exitVoiceChannel()
+        await sleep(400)
+        await this.discord_page.click(`[aria-label^="${channel_name} (voice channel)"]`)
+        await sleep(400)
+        await this.discord_page.bringToFront()
+        await this.discord_page.mouse.click(640, 2048)
+        await this.discord_page.setViewport({ width: 1280, height: 640 })
+        await sleep(600)
+        
+        for (let i = 0; i < 3; i++) {
+            try { await this.discord_page.click('button[aria-label="Share Your Screen"]') } catch(_) {}
+            await sleep(100)
+        }
+
+        await sleep(1200)
         
         // ugly as hell... navigate through the share screen modal dialog and confirm
-        await shellExecute('xdotool key --delay 100 shift+Tab shift+Tab Right Right Tab Down Down Tab space Tab Tab space')
+        await shellExecute('xdotool key --delay 120 shift+Tab shift+Tab Right Right Tab Down Down Tab space Tab Tab space')
     }
 
     public async exitVoiceChannel() {
+        await this.discord_page.bringToFront()
+        await this.discord_page.keyboard.press('Escape')
+        await sleep(100)
         await this.discord_page.mouse.click(100, 100) // click somewhere to gain focus
+        await sleep(400)
         try {
             await this.discord_page.click('button[aria-label="Disconnect"]')
         } catch(_) {
@@ -69,7 +113,7 @@ class Browser {
     }
 
     public async stopStream() {
-        try { this.exitVoiceChannel() } catch(_) {}
+        try { await this.exitVoiceChannel() } catch(_) {}
 
         this.movie_page.reload()
     }
@@ -81,6 +125,7 @@ class Browser {
         console.log('Abrindo arquivo', file)
 
         const fileChooserHandle = await this.movie_page.$('#file_chooser')
+        await this.movie_page.evaluate('fileChooser.value = ""')
         await fileChooserHandle.uploadFile(file)
         await this.movie_page.setViewport({ width: 1280, height: 720 })
         await this.player_controls_play()
@@ -90,6 +135,7 @@ class Browser {
         console.log('Abrindo legenda', subfile)
 
         const fileChooserHandle = await this.movie_page.$('#subtitle_file_chooser')
+        await this.movie_page.evaluate('subtitleFileChooser.value = ""')
         await fileChooserHandle.uploadFile(subfile)
     }
 
@@ -98,6 +144,10 @@ class Browser {
      */
     public player_page_eval(script: string) {
         return this.movie_page.evaluate(script)
+    }
+
+    public async playerIsPaused(): Promise<boolean> {
+        return (await this.movie_page.evaluate('player.paused')) ? true : false
     }
 
     /**
@@ -122,9 +172,9 @@ class Browser {
      */
     player_controls_seek(relative) { return this.player_page_eval(`Seek(${relative})`) }
 
-    public close(): void {
+    public async close(): Promise<void> {
         try {
-            this.browser.close()
+            await this.browser.close()
         } catch(ex) {
             // todo...
         }

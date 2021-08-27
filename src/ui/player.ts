@@ -12,6 +12,9 @@ let subtitle;
 
 fileChooser.onchange = () => {
     const file = fileChooser.files[0]
+
+    if (!file) return
+
     const url = URL.createObjectURL(file)
 
     player.src = url
@@ -20,7 +23,7 @@ fileChooser.onchange = () => {
 
 subtitleFileChooser.onchange = () => {
     const file = subtitleFileChooser.files[0]
-
+    if (!file) return
     // https://stackoverflow.com/a/65890220
     const read = (utf8 = true) => {
         const reader = new FileReader()
@@ -80,7 +83,11 @@ var toHHMMSS = (secs) => {
 }
 
 setInterval(() => {
-    status_paragraph.innerText = toHHMMSS(Math.floor(player.currentTime)) + ' de ' + toHHMMSS(Math.floor(player.duration || 0))
+    const filename = fileChooser.files[0] ? fileChooser.files[0].name : 'Nenhum arquivo'
+
+    status_paragraph.innerHTML = 
+        toHHMMSS(Math.floor(player.currentTime)) + ' de ' + toHHMMSS(Math.floor(player.duration || 0))
+        + '<br>' + truncateWithEllipses(filename, 20)
 
     pauseScreen.classList.toggle('hidden', !player.paused)
 
@@ -93,3 +100,8 @@ setInterval(() => {
         ).join('<br>')
     }
 }, 500)
+
+function truncateWithEllipses(text, max) 
+{
+    return text.substr(0,max-1)+(text.length>max?'&hellip;':''); 
+}

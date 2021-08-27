@@ -5,6 +5,7 @@ import Browser from "../browser";
 import TorrentClient from "../torrent";
 import * as path from 'path'
 import * as Utils from "../utils"
+import Stream from "../stream";
 
 export default class implements ICommand {
     public name = 'subtitle'
@@ -12,6 +13,13 @@ export default class implements ICommand {
     public ownerOnly = false
 
     public async exec(msg: Message, args: string[]): Promise<void> {
+        const stream = Stream.getInstance()
+
+        if (!stream.isStreaming()) {
+            msg.channel.send('Não estou transmitindo nada no momento.')
+            return
+        }
+
         const fileRequestEmbed = new MessageEmbed()
         fileRequestEmbed.setTitle('Legendas')
         fileRequestEmbed.setDescription('<:upload:880430526190739496> Na sua próxima mensagem, envie (faça upload) um arquivo `srt` a ser usado como legenda.')
@@ -43,7 +51,7 @@ export default class implements ICommand {
             try {
                 const outputFileName = await Utils.downloadFile(attachment.url, path.join(__dirname, '../../downloads/subs.srt'))
 
-                await Browser.getInstance().player_set_subtitles(outputFileName)
+                await stream.setSubtitle(outputFileName)
 
                 fileRequestEmbed.setDescription('✅ Legendas adicionadas')
 
