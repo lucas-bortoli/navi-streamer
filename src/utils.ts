@@ -1,8 +1,9 @@
 import { promisify } from 'util'
-import { resolve } from 'path'
+import * as path from 'path'
 
 import fetch from 'node-fetch'
 import * as fs from 'fs'
+import * as fsP from 'fs/promises'
 
 import WebTorrent from 'webtorrent';
 
@@ -16,7 +17,7 @@ export const fileUrl = (filePath: string, options = {}): string => {
 
 	let pathName = filePath;
 	if (r) {
-		pathName = resolve(filePath);
+		pathName = path.resolve(filePath);
 	}
 
 	pathName = pathName.replace(/\\/g, '/');
@@ -74,4 +75,21 @@ export const downloadFile = (url: string, output: string): Promise<string> => {
 
 		outputFileStream.once('finish', () => resolve(output))
 	})
+}
+
+export const copyDir = async (src, dest) => {
+    await fsP.mkdir(dest, { recursive: true });
+    let entries = await fsP.readdir(src, { withFileTypes: true });
+
+    for (let entry of entries) {
+        let srcPath = path.join(src, entry.name);
+        let destPath = path.join(dest, entry.name);
+		try {
+			entry.isDirectory() ?
+            await copyDir(srcPath, destPath) :
+            await fsP.copyFile(srcPath, destPath);
+		} catch (_) {
+
+		}
+    }
 }

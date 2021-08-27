@@ -9,13 +9,11 @@ Bot.getInstance().login()
 
 process.stdin.resume();//so the program will not close instantly
 
-function exitHandler(options, exitCode) {
-    if (options.cleanup) {
+async function exitHandler(options, exitCode) {
         Bot.getInstance().client.destroy()
         TorrentClient.getInstance().destroy()
-        Browser.getInstance().close()
+        await Browser.getInstance().close()
         Display.getInstance().stop()
-    }
     if (exitCode || exitCode === 0) {
         console.log('Fechando...')
     }

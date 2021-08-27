@@ -1,9 +1,11 @@
 import ICommand from "../types/ICommand";
-import { Message, MessageEmbed } from "discord.js"
+import { Message, MessageEmbed, StageChannel, VoiceChannel } from "discord.js"
 
 import Browser from "../browser";
 import TorrentClient from "../torrent";
 import * as Utils from "../utils"
+
+import Stream from "../stream";
 
 export default class implements ICommand {
     public name = 'start'
@@ -11,6 +13,13 @@ export default class implements ICommand {
     public ownerOnly = false
     
     public async exec(msg: Message, args: string[]): Promise<void> {
+        const stream = Stream.getInstance()
+
+        if (stream.isStreaming()) {
+            msg.channel.send('Já estou transmitindo! Use `.stop` para parar.')
+            return
+        }
+
         const torrent = TorrentClient.getInstance().getTorrent()
         const video_id = parseInt(args.shift())
 
@@ -35,13 +44,16 @@ export default class implements ICommand {
         const guildId = msg.guildId
         const bw = Browser.getInstance()
         try {
-            await bw.focusGuild(guildId)
+            await stream.start(msg.guild, msg.member.voice.channel as VoiceChannel)
+
+            /*await bw.focusGuild(guildId)
             statusMsg = await statusMsg.edit(statusMsg.content + '\n<:blank:880424437118287972> Entrando no canal de voz...')
             await Utils.sleep(1000)
             await bw.joinVoiceChannel(channelName)
             statusMsg = await statusMsg.edit(statusMsg.content + '\n<:blank:880424437118287972> Abrindo arquivo de vídeo...')
             await Utils.sleep(1000)
-            await bw.player_set_video_file('../downloads/' + files[video_id - 1].path)
+            await bw.player_set_video_file('../downloads/' + files[video_id - 1].path)*/
+            await stream.setVideoFile('../downloads/' + files[video_id - 1].path)
             
             statusMsg.edit(statusMsg.content.replace('a:spinner:880417215231443025', ':blank:880424437118287972') + `\n<:streaming:880419018572439612> **Stream iniciada**`)
         } catch (ex) {

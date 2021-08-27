@@ -31,13 +31,13 @@ class Bot {
             }
         })
 
-        setInterval(() => this.update_presence(), 30000)
+        setInterval(() => this.update_presence(), 10000)
     }
 
     async login() {
         await Browser.getInstance().launch()
         await this.client.login(Settings().discord_bot_token)
-        this.update_presence()
+        this.client.user.setActivity('Iniciando...')
     }
 
     async update_presence() {
